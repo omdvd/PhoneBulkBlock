@@ -52,10 +52,11 @@ public class MainActivity extends AppCompatActivity
     private final int ACTION_UNBLOCK_PATTERN = 2;
 
     private ArrayList<String> mNumbersList;
-    private Button mButtonDoBlock, mButtonDoCheck, mButtonDoUnBlock;
+    private Button mButtonDoBlock, mButtonDoCheck, mButtonDoStop, mButtonDoUnBlock;
     private EditText mInputPhoneNumber;
     private Handler mHandler;
     private ProgressBar mProgressAccessToList;
+    private boolean mFlagStop;
     private int mCountProgress, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
 
     @Override
@@ -71,6 +72,7 @@ public class MainActivity extends AppCompatActivity
 
         mButtonDoBlock = findViewById(R.id.button_do_block);
         mButtonDoCheck = findViewById(R.id.button_do_check);
+        mButtonDoStop = findViewById(R.id.button_do_stop);
         mButtonDoUnBlock = findViewById(R.id.button_do_unblock);
         mInputPhoneNumber = findViewById(R.id.input_phone_number);
         mProgressAccessToList = findViewById(R.id.progress_bar);
@@ -78,10 +80,13 @@ public class MainActivity extends AppCompatActivity
 
         mButtonDoBlock.setOnClickListener(this);
         mButtonDoCheck.setOnClickListener(this);
+        mButtonDoStop.setOnClickListener(this);
         mButtonDoUnBlock.setOnClickListener(this);
 
         mNumbersList = new ArrayList<>();
         mHandler = new Handler();
+
+        mFlagStop = false;
     }
 
     @Override
@@ -131,6 +136,9 @@ public class MainActivity extends AppCompatActivity
         else if (id == R.id.button_do_check) {
             doBLockListAction(phoneNumber, "*", ACTION_CHECK_PATTERN);
         }
+        else if (id == R.id.button_do_stop) {
+            mFlagStop = true;
+        }
         else if (id == R.id.button_do_unblock) {
             doBLockListAction(phoneNumber, "*", ACTION_UNBLOCK_PATTERN);
         }
@@ -177,6 +185,7 @@ public class MainActivity extends AppCompatActivity
         mCountNumbersBlocked = 0;
         mCountNumbersNonBlocked = 0;
         mCountNumbersErrors = 0;
+        mFlagStop = false;
 
         try {
             generateNumbersList(inputPattern, placeHolder, mNumbersList);
@@ -242,6 +251,10 @@ public class MainActivity extends AppCompatActivity
                             mProgressAccessToList.setProgress(mCountProgress);
                         }
                     });
+
+                    if (mFlagStop) {
+                        break;
+                    }
                 }
 
                 mHandler.post(new Runnable() {
