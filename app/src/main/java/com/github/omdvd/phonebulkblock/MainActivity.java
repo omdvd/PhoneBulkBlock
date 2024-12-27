@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity
     private ProgressBar mProgressAccessToList;
     private boolean mFlagStop;
     private int mCountProgress, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
+    private long mDurationStart, mDurationStop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -185,6 +186,7 @@ public class MainActivity extends AppCompatActivity
         mCountNumbersBlocked = 0;
         mCountNumbersNonBlocked = 0;
         mCountNumbersErrors = 0;
+        mDurationStart = System.currentTimeMillis();
         mFlagStop = false;
 
         try {
@@ -256,20 +258,24 @@ public class MainActivity extends AppCompatActivity
                         break;
                     }
                 }
+                mDurationStop = System.currentTimeMillis();
 
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
+                        long durationMillis = mDurationStop - mDurationStart;
+                        long durationS = durationMillis / 1000;
+                        long durationM = durationMillis % 1000;
                         String formattedItem;
                         switch (setAction) {
                             case (ACTION_CHECK_PATTERN):
-                                formattedItem = String.format("%d numbers blocked, %d numbers not blocked.\n%d errors occured.", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors);
+                                formattedItem = String.format("%d numbers blocked, %d numbers not blocked.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
                                 break;
                             case (ACTION_BLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers blocked, %d numbers already blocked.\n%d errors occured.", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors);
+                                formattedItem = String.format("%d numbers blocked, %d numbers already blocked.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
                                 break;
                             case (ACTION_UNBLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers unblocked, %d numbers already not in block list.\n%d errors occured.", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors);
+                                formattedItem = String.format("%d numbers unblocked, %d numbers already not in block list.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
                                 break;
                             default:
                                 formattedItem = "Something went wrong";
