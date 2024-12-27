@@ -353,6 +353,10 @@ public class MainActivity extends AppCompatActivity
         generatedNumbers.clear();
         placeholdersCount = findPlaceholdersCount(pattern, placeHolder);
 
+        if (placeholdersCount > 7) {
+            throw new IllegalArgumentException("Too many placeholders");
+        }
+
         if (placeholdersCount == 0) {
             generatedNumbers.add(pattern);
         } else {
