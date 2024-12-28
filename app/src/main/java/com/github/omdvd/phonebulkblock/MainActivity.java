@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity
     private Handler mHandler;
     private ProgressBar mProgressAccessToList;
     private boolean mFlagStop;
-    private int mCountProgress, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
+    private int mCountNumber, mCountProgress, mProgressDiv, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
     private long mDurationStart, mDurationStop;
 
     @Override
@@ -188,6 +188,7 @@ public class MainActivity extends AppCompatActivity
         mCountNumbersErrors = 0;
         mDurationStart = System.currentTimeMillis();
         mFlagStop = false;
+        int tmpProgressMax;
 
         try {
             generateNumbersList(inputPattern, placeHolder, mNumbersList);
@@ -196,19 +197,29 @@ public class MainActivity extends AppCompatActivity
             return;
         }
 
-        mProgressAccessToList.setMax(mNumbersList.size());
+        // On big number lists reduce setProgress() calls to 100 per task
+        if (mNumbersList.size() <= 100) {
+            mProgressDiv = 1;
+            tmpProgressMax = mNumbersList.size();
+        } else {
+            mProgressDiv = (int)Math.pow(10, ((int)Math.log10(mNumbersList.size()) - 2));
+            tmpProgressMax = 100;
+        }
+        mProgressAccessToList.setMax(tmpProgressMax);
+        mProgressAccessToList.setProgress(0);
         mProgressAccessToList.setVisibility(View.VISIBLE);
+        mCountProgress = mProgressDiv;
         setButtonInput(false);
 
         // Run slow task in another thread
         new Thread(new Runnable() {
             @Override
             public void run() {
-                for (mCountProgress = 0; mCountProgress < mNumbersList.size(); mCountProgress++) {
+                for (mCountNumber = 0; mCountNumber < mNumbersList.size(); mCountNumber++) {
                     switch (setAction) {
                         case (ACTION_CHECK_PATTERN):
                             try {
-                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountProgress))) {
+                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
                                     mCountNumbersBlocked++;
                                 } else {
                                     mCountNumbersNonBlocked++;
@@ -220,9 +231,9 @@ public class MainActivity extends AppCompatActivity
 
                         case (ACTION_BLOCK_PATTERN):
                             ContentValues values = new ContentValues();
-                            values.put(BlockedNumberContract.BlockedNumbers.COLUMN_ORIGINAL_NUMBER, mNumbersList.get(mCountProgress));
+                            values.put(BlockedNumberContract.BlockedNumbers.COLUMN_ORIGINAL_NUMBER, mNumbersList.get(mCountNumber));
                             try {
-                                if (!isBlocked(MainActivity.this, mNumbersList.get(mCountProgress))) {
+                                if (!isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
                                     getContentResolver().insert(BlockedNumberContract.BlockedNumbers.CONTENT_URI, values);
                                     mCountNumbersBlocked++;
                                 } else {
@@ -235,8 +246,8 @@ public class MainActivity extends AppCompatActivity
 
                         case (ACTION_UNBLOCK_PATTERN):
                             try {
-                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountProgress))) {
-                                    unblock(MainActivity.this, mNumbersList.get(mCountProgress));
+                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
+                                    unblock(MainActivity.this, mNumbersList.get(mCountNumber));
                                     mCountNumbersBlocked++;
                                 } else {
                                     mCountNumbersNonBlocked++;
@@ -250,7 +261,11 @@ public class MainActivity extends AppCompatActivity
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            mProgressAccessToList.setProgress(mCountProgress);
+                            mCountProgress--;
+                            if (mCountProgress == 0) {
+                                mProgressAccessToList.setProgress(mProgressAccessToList.getProgress() + 1);
+                                mCountProgress = mProgressDiv;
+                            }
                         }
                     });
 
