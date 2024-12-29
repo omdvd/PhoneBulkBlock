@@ -16,12 +16,14 @@ import android.provider.BlockedNumberContract;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
 import android.view.View;
+import android.util.Pair;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -34,7 +36,6 @@ import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -50,15 +51,14 @@ public class MainActivity extends AppCompatActivity
     private final int ACTION_BLOCK_PATTERN = 0;
     private final int ACTION_CHECK_PATTERN = 1;
     private final int ACTION_UNBLOCK_PATTERN = 2;
-
-    private ArrayList<String> mNumbersList;
     private Button mButtonDoBlock, mButtonDoCheck, mButtonDoStop, mButtonDoUnBlock;
     private EditText mInputPhoneNumber;
     private Handler mHandler;
     private ProgressBar mProgressAccessToList;
+    private String mPatternPrefix, mCurrentNumber;
     private boolean mFlagShowStatus, mFlagStop;
-    private int mCountNumber, mCountProgress, mProgressDiv, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
-    private long mDurationStart, mDurationStop;
+    private int mNumbersCount, mPlaceholdersCount, mCountNumber, mCountProgress, mProgressDiv, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
+    private long mDurationStart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,7 +84,6 @@ public class MainActivity extends AppCompatActivity
         mButtonDoStop.setOnClickListener(this);
         mButtonDoUnBlock.setOnClickListener(this);
 
-        mNumbersList = new ArrayList<>();
         mHandler = new Handler();
 
         mFlagShowStatus = false;
@@ -184,43 +183,48 @@ public class MainActivity extends AppCompatActivity
      * @param setAction - action with blocklist
      */
     private void doBLockListAction(String inputPattern, String placeHolder, int setAction) {
-        mCountNumbersBlocked = 0;
-        mCountNumbersNonBlocked = 0;
-        mCountNumbersErrors = 0;
-        mDurationStart = System.currentTimeMillis();
-        mFlagStop = false;
         int tmpProgressMax;
 
         try {
-            generateNumbersList(inputPattern, placeHolder, mNumbersList);
+            Pair<Integer, String> patternData = doParsePattern(inputPattern, placeHolder);
+            mPlaceholdersCount = patternData.first;
+            mPatternPrefix = patternData.second;
         } catch (Exception e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
             return;
         }
+        mNumbersCount = (int) Math.pow(10, mPlaceholdersCount);
 
         // On big number lists reduce setProgress() calls to 100 per task
-        if (mNumbersList.size() <= 100) {
+        if (mNumbersCount <= 100) {
             mProgressDiv = 1;
-            tmpProgressMax = mNumbersList.size();
+            tmpProgressMax = mNumbersCount;
         } else {
-            mProgressDiv = (int)Math.pow(10, ((int)Math.log10(mNumbersList.size()) - 2));
+            mProgressDiv = (int)Math.pow(10, (mPlaceholdersCount - 2));
             tmpProgressMax = 100;
         }
+
+        mCountNumbersBlocked = 0;
+        mCountNumbersNonBlocked = 0;
+        mCountNumbersErrors = 0;
+        mCountProgress = mProgressDiv;
+        mFlagStop = false;
         mProgressAccessToList.setMax(tmpProgressMax);
         mProgressAccessToList.setProgress(0);
         mProgressAccessToList.setVisibility(View.VISIBLE);
-        mCountProgress = mProgressDiv;
+        mDurationStart = System.currentTimeMillis();
         setButtonInput(false);
 
         // Run slow task in another thread
         new Thread(new Runnable() {
             @Override
             public void run() {
-                for (mCountNumber = 0; mCountNumber < mNumbersList.size(); mCountNumber++) {
+                for (mCountNumber = 0; mCountNumber < mNumbersCount; mCountNumber++) {
+                    mCurrentNumber = String.format("%s%0" + mPlaceholdersCount + "d", mPatternPrefix, mCountNumber);
                     switch (setAction) {
                         case (ACTION_CHECK_PATTERN):
                             try {
-                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
+                                if (isBlocked(MainActivity.this, mCurrentNumber)) {
                                     mCountNumbersBlocked++;
                                 } else {
                                     mCountNumbersNonBlocked++;
@@ -232,9 +236,9 @@ public class MainActivity extends AppCompatActivity
 
                         case (ACTION_BLOCK_PATTERN):
                             ContentValues values = new ContentValues();
-                            values.put(BlockedNumberContract.BlockedNumbers.COLUMN_ORIGINAL_NUMBER, mNumbersList.get(mCountNumber));
+                            values.put(BlockedNumberContract.BlockedNumbers.COLUMN_ORIGINAL_NUMBER, mCurrentNumber);
                             try {
-                                if (!isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
+                                if (!isBlocked(MainActivity.this, mCurrentNumber)) {
                                     getContentResolver().insert(BlockedNumberContract.BlockedNumbers.CONTENT_URI, values);
                                     mCountNumbersBlocked++;
                                 } else {
@@ -247,8 +251,8 @@ public class MainActivity extends AppCompatActivity
 
                         case (ACTION_UNBLOCK_PATTERN):
                             try {
-                                if (isBlocked(MainActivity.this, mNumbersList.get(mCountNumber))) {
-                                    unblock(MainActivity.this, mNumbersList.get(mCountNumber));
+                                if (isBlocked(MainActivity.this, mCurrentNumber)) {
+                                    unblock(MainActivity.this, mCurrentNumber);
                                     mCountNumbersBlocked++;
                                 } else {
                                     mCountNumbersNonBlocked++;
@@ -274,7 +278,7 @@ public class MainActivity extends AppCompatActivity
                         @Override
                         public void run() {
                             if (mFlagShowStatus) {
-                                String formattedItem = String.format("Numbers total: %d, processed: %d, errors: %d.\nElapsed time: %s", mNumbersList.size(), mCountNumber, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
+                                String formattedItem = String.format("Numbers total: %d, processed: %d, errors: %d.\nElapsed time: %s", mNumbersCount, mCountNumber, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 showDialogOkCancel("Progress", formattedItem);
                                 mFlagShowStatus = false;
                             }
@@ -285,7 +289,6 @@ public class MainActivity extends AppCompatActivity
                         break;
                     }
                 }
-                mDurationStop = System.currentTimeMillis();
 
                 mHandler.post(new Runnable() {
                     @Override
@@ -372,15 +375,16 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * Generate list of available numbers from pattern
+     * Validate input pattern, count placeholders and select number prefix from pattern
      *
      * @param inputPattern - pattern
      * @param placeHolder - placeholder
-     * @param generatedNumbers - list of generated numbers
-     * @throws IllegalArgumentException - unsupported format of pattern or placeholder
+     * @return - Pair of count of placeholders and number prefix
+     * @throws IllegalArgumentException - unsupported format of pattern or placeholder or placeholders count
      */
-    private void generateNumbersList(String inputPattern, String placeHolder, ArrayList <String> generatedNumbers) throws IllegalArgumentException {
+    private Pair<Integer, String> doParsePattern(@NonNull String inputPattern, @NonNull String placeHolder)  throws IllegalArgumentException {
         int placeholdersCount;
+
         String pattern = inputPattern.trim();
         String patternPrefix = pattern.replaceAll("\\*", "").replaceAll("-", "");
 
@@ -394,21 +398,14 @@ public class MainActivity extends AppCompatActivity
             throw new IllegalArgumentException("Argument placeholder is empty");
         }
 
-        generatedNumbers.clear();
         placeholdersCount = findPlaceholdersCount(pattern, placeHolder);
-
         if (placeholdersCount > 7) {
             throw new IllegalArgumentException("Too many placeholders");
         }
-
         if (placeholdersCount == 0) {
-            generatedNumbers.add(pattern);
-        } else {
-            for (int i = 0; i < Math.pow(10, placeholdersCount); i++) {
-                String formattedItem = String.format("%0" + placeholdersCount + "d", i);
-                generatedNumbers.add(patternPrefix + formattedItem);
-            }
+            throw new IllegalArgumentException("Missing placeholders");
         }
+        return new Pair<Integer, String>(placeholdersCount, patternPrefix);
     }
 
     /**
