@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity
     private EditText mInputPhoneNumber;
     private Handler mHandler;
     private ProgressBar mProgressAccessToList;
-    private boolean mFlagStop;
+    private boolean mFlagShowStatus, mFlagStop;
     private int mCountNumber, mCountProgress, mProgressDiv, mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors;
     private long mDurationStart, mDurationStop;
 
@@ -87,6 +87,7 @@ public class MainActivity extends AppCompatActivity
         mNumbersList = new ArrayList<>();
         mHandler = new Handler();
 
+        mFlagShowStatus = false;
         mFlagStop = false;
     }
 
@@ -138,7 +139,7 @@ public class MainActivity extends AppCompatActivity
             doBLockListAction(phoneNumber, "*", ACTION_CHECK_PATTERN);
         }
         else if (id == R.id.button_do_stop) {
-            mFlagStop = true;
+            mFlagShowStatus = true;
         }
         else if (id == R.id.button_do_unblock) {
             doBLockListAction(phoneNumber, "*", ACTION_UNBLOCK_PATTERN);
@@ -269,6 +270,17 @@ public class MainActivity extends AppCompatActivity
                         }
                     });
 
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mFlagShowStatus) {
+                                String formattedItem = String.format("Numbers total: %d, processed: %d, errors: %d.\nElapsed time: %s", mNumbersList.size(), mCountNumber, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
+                                showDialogOkCancel("Progress", formattedItem);
+                                mFlagShowStatus = false;
+                            }
+                        }
+                    });
+
                     if (mFlagStop) {
                         break;
                     }
@@ -278,19 +290,16 @@ public class MainActivity extends AppCompatActivity
                 mHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        long durationMillis = mDurationStop - mDurationStart;
-                        long durationS = durationMillis / 1000;
-                        long durationM = durationMillis % 1000;
                         String formattedItem;
                         switch (setAction) {
                             case (ACTION_CHECK_PATTERN):
-                                formattedItem = String.format("%d numbers blocked, %d numbers not blocked.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
+                                formattedItem = String.format("%d numbers blocked, %d numbers not blocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             case (ACTION_BLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers blocked, %d numbers already blocked.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
+                                formattedItem = String.format("%d numbers blocked, %d numbers already blocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             case (ACTION_UNBLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers unblocked, %d numbers already not in block list.\n%d errors occured.\nElapsed time: %d.%d s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, durationS, durationM);
+                                formattedItem = String.format("%d numbers unblocked, %d numbers already not in block list.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             default:
                                 formattedItem = "Something went wrong";
@@ -337,6 +346,26 @@ public class MainActivity extends AppCompatActivity
         builder.setTitle(title);
         builder.setMessage(message);
         builder.setPositiveButton("OK", (dialog, which) -> {
+            dialog.cancel();
+        });
+        builder.show();
+    }
+
+    /**
+     * Show dialog with Continue and Stop buttons
+     *
+     * @param title -  dialog title
+     * @param message - dialog message
+     */
+    private void showDialogOkCancel(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setPositiveButton("Continue", (dialog, which) -> {
+            dialog.cancel();
+        });
+        builder.setNegativeButton("Stop", (dialog, which) -> {
+            mFlagStop = true;
             dialog.cancel();
         });
         builder.show();
@@ -401,6 +430,29 @@ public class MainActivity extends AppCompatActivity
             }
         }
         return count;
+    }
+
+    /**
+     * Format string with text presentation of time interval in milliseconds
+     *
+     * @param millis - time interval in milliseconds
+     * @return string with text
+     */
+    private String formatSecondsToTime(long millis) {
+        long mil = millis % 1000;
+        long sec = millis / 1000;
+        long seconds = sec % 60;
+        long minutes = sec / 60;
+        if (minutes >= 60) {
+            long hours = minutes / 60;
+            minutes %= 60;
+            if( hours >= 24) {
+                long days = hours / 24;
+                return String.format("%d days %02dh:%02dm:%02ds", days,hours%24, minutes, seconds);
+            }
+            return String.format("%02dh:%02dm:%02ds", hours, minutes, seconds);
+        }
+        return String.format("%02dm:%02ds", minutes, seconds);
     }
 
     /**

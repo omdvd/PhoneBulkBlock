@@ -42,7 +42,7 @@
         android:id="@+id/button_do_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Stop task" />
+        android:text="Status/Stop" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
