@@ -278,7 +278,10 @@ public class MainActivity extends AppCompatActivity
                         @Override
                         public void run() {
                             if (mFlagShowStatus) {
-                                String formattedItem = String.format("Numbers total: %d, processed: %d, errors: %d.\nElapsed time: %s", mNumbersCount, mCountNumber, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
+                                long timeFromStart = (System.currentTimeMillis() - mDurationStart);
+                                float workSpeed = ((float)mCountNumber) / ((float)timeFromStart / 1000f);
+                                long estimatedTime = (long)((float)((mNumbersCount - mCountNumber) * 1000l) / workSpeed);
+                                String formattedItem = String.format("Numbers total: %d, processed: %d, errors: %d.\nElapsed time: %s\nSpeed: %.1f numbers/s\nEstimated time: %s", mNumbersCount, mCountNumber, mCountNumbersErrors, formatSecondsToTime(timeFromStart), workSpeed, formatSecondsToTime(estimatedTime));
                                 showDialogOkCancel("Progress", formattedItem);
                                 mFlagShowStatus = false;
                             }
