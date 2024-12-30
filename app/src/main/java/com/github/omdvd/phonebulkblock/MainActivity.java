@@ -381,24 +381,27 @@ public class MainActivity extends AppCompatActivity
      * Validate input pattern, count placeholders and select number prefix from pattern
      *
      * @param inputPattern - pattern
-     * @param placeHolder - placeholder
+     * @param inputPlaceHolder - placeholder
      * @return - Pair of count of placeholders and number prefix
      * @throws IllegalArgumentException - unsupported format of pattern or placeholder or placeholders count
      */
-    private Pair<Integer, String> doParsePattern(@NonNull String inputPattern, @NonNull String placeHolder)  throws IllegalArgumentException {
+    private Pair<Integer, String> doParsePattern(@NonNull String inputPattern, @NonNull String inputPlaceHolder)  throws IllegalArgumentException {
         int placeholdersCount;
 
         String pattern = inputPattern.trim();
-        String patternPrefix = pattern.replaceAll("\\*", "").replaceAll("-", "");
+        String placeHolder = inputPlaceHolder.trim();
 
         if (pattern.isEmpty()) {
             throw new IllegalArgumentException("Argument pattern is empty");
         }
-        if (!pattern.matches("[0-9\\-+]+\\**")) {
-            throw new IllegalArgumentException("Unsupported pattern format: " + pattern);
-        }
         if (placeHolder.isEmpty()) {
             throw new IllegalArgumentException("Argument placeholder is empty");
+        }
+        if (placeHolder.length() > 1) {
+            throw new IllegalArgumentException("Argument placeholder too long");
+        }
+        if (!pattern.matches("[0-9\\-+]+" + "\\" + placeHolder + "*")) {
+            throw new IllegalArgumentException("Unsupported pattern format: " + pattern);
         }
 
         placeholdersCount = findPlaceholdersCount(pattern, placeHolder);
@@ -408,6 +411,7 @@ public class MainActivity extends AppCompatActivity
         if (placeholdersCount == 0) {
             throw new IllegalArgumentException("Missing placeholders");
         }
+        String patternPrefix = pattern.replaceAll("\\" + placeHolder, "").replaceAll("-", "");
         return new Pair<Integer, String>(placeholdersCount, patternPrefix);
     }
 
