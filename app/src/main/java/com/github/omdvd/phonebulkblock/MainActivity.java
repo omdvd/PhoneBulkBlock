@@ -238,12 +238,8 @@ public class MainActivity extends AppCompatActivity
                             ContentValues values = new ContentValues();
                             values.put(BlockedNumberContract.BlockedNumbers.COLUMN_ORIGINAL_NUMBER, mCurrentNumber);
                             try {
-                                if (!isBlocked(MainActivity.this, mCurrentNumber)) {
-                                    getContentResolver().insert(BlockedNumberContract.BlockedNumbers.CONTENT_URI, values);
-                                    mCountNumbersBlocked++;
-                                } else {
-                                    mCountNumbersNonBlocked++;
-                                }
+                                getContentResolver().insert(BlockedNumberContract.BlockedNumbers.CONTENT_URI, values);
+                                mCountNumbersBlocked++;
                             } catch (SecurityException e) {
                                 mCountNumbersErrors++;
                             }
@@ -251,12 +247,8 @@ public class MainActivity extends AppCompatActivity
 
                         case (ACTION_UNBLOCK_PATTERN):
                             try {
-                                if (isBlocked(MainActivity.this, mCurrentNumber)) {
-                                    unblock(MainActivity.this, mCurrentNumber);
-                                    mCountNumbersBlocked++;
-                                } else {
-                                    mCountNumbersNonBlocked++;
-                                }
+                                unblock(MainActivity.this, mCurrentNumber);
+                                mCountNumbersBlocked++;
                             } catch (Exception e) {
                                 mCountNumbersErrors++;
                             }
@@ -302,10 +294,10 @@ public class MainActivity extends AppCompatActivity
                                 formattedItem = String.format("%d numbers blocked, %d numbers not blocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             case (ACTION_BLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers blocked, %d numbers already blocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
+                                formattedItem = String.format("%d numbers blocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             case (ACTION_UNBLOCK_PATTERN):
-                                formattedItem = String.format("%d numbers unblocked, %d numbers already not in block list.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersNonBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
+                                formattedItem = String.format("%d numbers unblocked.\n%d errors occured.\nElapsed time: %s", mCountNumbersBlocked, mCountNumbersErrors, formatSecondsToTime(System.currentTimeMillis() - mDurationStart));
                                 break;
                             default:
                                 formattedItem = "Something went wrong";
