@@ -18,7 +18,7 @@
         android:id="@+id/input_phone_number_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enter phone number pattern, replace the required count of right-side digits with asterisks to generate all available numbers and add, remove or check it's presence in phone blocklist.\nLeading + optional, allowed digits and '-' as sepatator." />
+        android:text="Enter phone number pattern, replace the required count of right-side digits with asterisks to generate all available numbers and add, remove or check it's presence in phone blocklist.\nLeading '+' optional, allowed digits and '-' as sepatator." />
 
     <Button
         android:id="@+id/button_do_block"
